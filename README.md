@@ -23,6 +23,13 @@ statements; this repository exists to do it properly.)
 
 ## Layer status
 
+> **Construction note (2026-07-02):** the field layer is mid-build. PROVEN and
+> compiled: PPallas (primality), Denote (Montgomery denotation), HelperSpecs
+> (adc/sbb/mac), SubNegSpec (sub/neg). DRAFTED, awaiting compilation:
+> AddSpec, ConstSpecs, ReduceSpec (Montgomery reduction), MulSpec. Not yet
+> written: SquareSpec, InvertSpec, FieldMain (the certificate), check.sh.
+> This note is removed when `verification/check.sh` goes green end-to-end.
+
 | Layer | Certificate | Status | Axioms of certificate |
 |-------|-------------|--------|-----------------------|
 | Field 𝔽_p (Montgomery) | `fieldImplementation` | ⏳ in progress | — |
