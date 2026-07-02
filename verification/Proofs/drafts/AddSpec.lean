@@ -11,6 +11,7 @@
      add a b = ok r  with  Canon r ∧ (r = a + b  ∨  r + P = a + b).
    ────────────────────────────────────────────────────────────────────────────── -/
 import Proofs.SubNegSpec
+import Mathlib.Tactic.LinearCombination
 open Aeneas Aeneas.Std Result
 open pasta_curves
 
@@ -24,6 +25,18 @@ open Aeneas.Std.WP
 
 macro "dis" : tactic =>
   `(tactic| (subst_vars; try simp [Array.set_val_eq, *]; try scalar_tac))
+
+
+/-- Context-free (isolated big-coefficient omega, like ReduceSpec's accounting):
+    a full-width add produces no final carry when both inputs are < P, and the
+    low limbs then hold the exact sum. Kept standalone so the 2²⁵⁶-scale omega
+    certificate never lands inside the WP-threaded proof term of `add_spec`
+    (that is what overflows the Lean kernel — see POSTMORTEM-2026-07-02). -/
+private theorem add_carry_zero (Ld La Lb c3 : ℕ)
+    (h : Ld + 2^256 * c3 = La + Lb) (hA : La < P) (hB : Lb < P) :
+    c3 = 0 ∧ Ld = La + Lb := by
+  unfold P at hA hB
+  omega
 
 /-- `Fp::add`: total, canonical, exact value (see file header). -/
 theorem add_spec (a b : Fe) (ha : Canon a) (hb : Canon b) :
@@ -65,14 +78,19 @@ theorem add_spec (a b : Fe) (ha : Canon a) (hb : Canon b) :
   -- the raw sum: Σd + 2²⁵⁶·carry3 = a + b < 2P < 2²⁵⁶, hence carry3 = 0
   have hsum : limbsVal d0 d1 d2 d3 + 2^256 * carry3.val =
       limbsVal a0 a1 a2 a3 + limbsVal b0 b1 b2 b3 := by
-    unfold limbsVal at *
-    omega
+    unfold limbsVal
+    -- weighted sum of the 4 adc rows; carries telescope (compact `ring`, not
+    -- a big-coefficient omega certificate)
+    have e0 := hadc0; have e1 := hadc1; have e2 := hadc2; have e3 := hadc3
+    zify at e0 e1 e2 e3 ⊢
+    linear_combination e0 + 2^64 * e1 + 2^128 * e2 + 2^192 * e3
   -- the conditional reduction: sub (Σd) MODULUS with Σd < 2P
   have hMle : feVal fields.fp.MODULUS ≤ P := le_of_eq feVal_MODULUS
+  obtain ⟨hc3, hexact⟩ := add_carry_zero _ _ _ _ hsum ha hb
   have hdlt : feVal (Array.make 4#usize [d0, d1, d2, d3] (by simp)) <
       feVal fields.fp.MODULUS + P := by
-    rw [feVal_MODULUS, feVal_make]
-    unfold limbsVal P at *
+    rw [feVal_MODULUS, feVal_make, hexact]
+    -- limbsVal a + limbsVal b < 2P, atoms; small omega
     omega
   -- MEMORY DISCIPLINE (post 2026-07-02 OOM): sub_spec's two arithmetic
   -- preconditions are discharged by EXACT matches against the facts proven
@@ -83,8 +101,9 @@ theorem add_spec (a b : Fe) (ha : Canon a) (hb : Canon b) :
   -- conclude
   rw [feVal_eq a a0 a1 a2 a3 hla, feVal_eq b b0 b1 b2 b3 hlb]
   refine ⟨hr_canon, ?_⟩
-  rw [feVal_MODULUS, feVal_make] at hr_val
-  unfold Canon limbsVal P at *
+  rw [feVal_MODULUS, feVal_make, hexact] at hr_val
+  unfold Canon at hr_canon
+  -- feVal r vs (limbsVal a + limbsVal b); all atoms, small coefficients
   omega
 
 end PastaProofs

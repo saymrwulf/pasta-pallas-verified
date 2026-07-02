@@ -23,12 +23,27 @@ statements; this repository exists to do it properly.)
 
 ## Layer status
 
-> **Construction note (2026-07-02):** the field layer is mid-build. PROVEN and
-> compiled: PPallas (primality), Denote (Montgomery denotation), HelperSpecs
-> (adc/sbb/mac), SubNegSpec (sub/neg). DRAFTED, awaiting compilation:
-> AddSpec, ConstSpecs, ReduceSpec (Montgomery reduction), MulSpec. Not yet
-> written: SquareSpec, InvertSpec, FieldMain (the certificate), check.sh.
-> This note is removed when `verification/check.sh` goes green end-to-end.
+> **Construction status (2026-07-02).** The field FOUNDATION is proven and
+> compiles (`verification/check.sh` is green): **PPallas** (Lucas/Pratt
+> primality certificate for the 255-bit Pallas modulus), **Denote** (the
+> Montgomery denotation ⟪a⟫ = feVal a·R⁻¹ and the `Canon` invariant),
+> **HelperSpecs** (exact ℕ specs for the `adc`/`sbb`/`mac` u64 primitives,
+> proven against the transpiled code), **SubNegSpec** (`sub`/`neg`), and
+> **ConstSpecs** (R, R², INV, zero, one). Every one is stated about the REAL
+> Aeneas-extracted code with **no bridge axioms**.
+>
+> **In progress:** `add`, `mul`, `montgomery_reduce`, `square`, `invert`, and
+> the aggregate `fieldImplementation` certificate. These are drafted in
+> `verification/Proofs/drafts/` and the Montgomery accounting is proven
+> standalone, but the full theorems currently overflow the Lean **kernel's
+> proof-checking memory**: omega certificates with 2²⁵⁶/2⁵¹²-scale
+> coefficients (unavoidable in 4×64 Montgomery arithmetic) are too large for
+> the kernel, whereas the ed25519 5×51 field (2⁵¹-scale, ×19 folding) stays
+> small. The fix — reformulating every arithmetic step via `linear_combination`
+> and isolating each big-coefficient step into a context-free lemma (the
+> `montgomery_rows_conclusion` accounting lemma already does this and compiles)
+> — is mechanical but not yet complete. Tracked honestly here rather than
+> shipped behind an axiom.
 
 | Layer | Certificate | Status | Axioms of certificate |
 |-------|-------------|--------|-----------------------|

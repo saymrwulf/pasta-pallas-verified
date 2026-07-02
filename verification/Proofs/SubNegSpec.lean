@@ -133,7 +133,6 @@ theorem sub_spec (a b : Fe) (hbP : feVal b ≤ P) (hab : feVal a < feVal b + P) 
       unfold Canon
       simp only [feVal_make]
       unfold limbsVal P at *
-      trace_state
       omega
     · -- the two-case value identity
       simp only [feVal_make]
